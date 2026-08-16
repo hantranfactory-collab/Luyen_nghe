@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎧 Luyện Nghe & Chép Chính Tả - Tự động lấy phụ đề</title>
-    <!-- Font Awesome & Google Fonts -->
+    <title>🎧 Luyện Nghe - Tự động lấy phụ đề từ YouTube</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
     <style>
@@ -24,8 +23,6 @@
         .btn-outline:hover { background: #334155; }
         .btn-danger { background: #ef4444; color: white; }
         .btn-danger:hover { background: #dc2626; }
-        .btn-warning { background: #eab308; color: #0f172a; }
-        .btn-warning:hover { background: #ca8a04; }
 
         .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; border-radius: 16px; overflow: hidden; background: #000; }
         .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
@@ -55,9 +52,11 @@
         .status-badge { background: #334155; padding: 4px 12px; border-radius: 40px; font-size: 13px; display: inline-block; }
         .flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
         .mt-2 { margin-top: 12px; }
-        .mb-2 { margin-bottom: 12px; }
-        .loading { animation: spin 1s linear infinite; }
+        .loading { animation: spin 1s linear infinite; display: inline-block; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .text-muted { color: #94a3b8; }
+        .text-danger { color: #f87171; }
+        .text-success { color: #4ade80; }
     </style>
 </head>
 <body>
@@ -66,10 +65,10 @@
             <h2 style="display: flex; gap: 10px; align-items: center; margin-bottom: 20px;">
                 <i class="fab fa-youtube" style="color: #ff0000;"></i> 
                 YouTube Dictation Pro
-                <span style="font-size: 14px; background: #334155; padding: 2px 12px; border-radius: 40px;">Tự động lấy phụ đề</span>
+                <span style="font-size: 14px; background: #334155; padding: 2px 12px; border-radius: 40px;">Lấy phụ đề thật</span>
             </h2>
             <div class="input-group">
-                <input type="text" id="youtubeUrl" placeholder="Dán link YouTube" value="https://www.youtube.com/watch?v=0LCgem1OAcE">
+                <input type="text" id="youtubeUrl" placeholder="Dán link YouTube (VD: https://youtu.be/...)" value="https://www.youtube.com/watch?v=0LCgem1OAcE">
                 <button class="btn btn-primary" onclick="loadVideo()"><i class="fas fa-play"></i> Tải video</button>
                 <button class="btn btn-success" onclick="fetchRealSubtitles()"><i class="fas fa-captions"></i> Lấy phụ đề</button>
                 <button class="btn btn-danger" onclick="reloadPlayer()"><i class="fas fa-sync"></i> Tải lại</button>
@@ -109,8 +108,12 @@
                 </span>
             </div>
 
+            <!-- KHÔNG CÒN PHỤ ĐỀ GIẢ LẬP -->
             <div id="subtitle-box" class="mt-2">
-                <span style="color:#64748b;">👉 Bấm "Lấy phụ đề" để tải phụ đề thật từ video.</span>
+                <span class="text-muted">
+                    <i class="fas fa-info-circle"></i> 
+                    👉 Bấm <strong>"Lấy phụ đề"</strong> để tải phụ đề thật từ video.
+                </span>
             </div>
 
             <div class="dictation-area" id="dictationArea" style="display: none;">
@@ -273,7 +276,7 @@
         }
 
         // ============================================================
-        // 2. TỰ ĐỘNG LẤY PHỤ ĐỀ THẬT TỪ YOUTUBE (QUAN TRỌNG)
+        // 2. TỰ ĐỘNG LẤY PHỤ ĐỀ THẬT TỪ YOUTUBE
         // ============================================================
         async function fetchRealSubtitles() {
             const url = document.getElementById('youtubeUrl').value;
@@ -284,10 +287,11 @@
             }
 
             document.getElementById('statusLabel').innerHTML = '⏳ Đang tải phụ đề...';
-            document.getElementById('subtitle-box').innerHTML = '<span style="color:#64748b;"><i class="fas fa-spinner loading"></i> Đang lấy phụ đề từ YouTube...</span>';
+            const box = document.getElementById('subtitle-box');
+            box.innerHTML = '<span class="text-muted"><i class="fas fa-spinner loading"></i> Đang lấy phụ đề từ YouTube...</span>';
 
             try {
-                // Sử dụng API công khai để lấy transcript thật
+                // Dùng API công khai để lấy transcript
                 const response = await fetch(`https://yt-api.com/api/transcript?videoId=${videoId}&lang=en`);
                 
                 if (!response.ok) {
@@ -300,7 +304,7 @@
                     throw new Error('Video này không có phụ đề tiếng Anh.');
                 }
 
-                // Chuyển đổi dữ liệu transcript thành định dạng của chúng ta
+                // Chuyển đổi dữ liệu transcript
                 const rawSubtitles = data.transcript.map(item => ({
                     start: parseFloat(item.start),
                     end: parseFloat(item.start) + parseFloat(item.dur || 2),
@@ -311,7 +315,7 @@
                     throw new Error('Không có dữ liệu phụ đề.');
                 }
 
-                // Ghép các dòng nhỏ thành câu hoàn chỉnh
+                // Ghép thành câu hoàn chỉnh
                 subtitles = mergeToSentences(rawSubtitles);
                 
                 renderSubtitles();
@@ -320,14 +324,16 @@
             } catch (error) {
                 console.error('Lỗi lấy phụ đề:', error);
                 document.getElementById('statusLabel').innerHTML = '❌ Lỗi lấy phụ đề';
-                document.getElementById('subtitle-box').innerHTML = `
-                    <span style="color:#f87171;">
+                box.innerHTML = `
+                    <span class="text-danger">
                         <i class="fas fa-exclamation-triangle"></i> 
                         Không thể lấy phụ đề: ${error.message}
                         <br><br>
-                        <span style="color:#94a3b8; font-size:14px;">
-                            💡 Gợi ý: Video này có thể không có phụ đề tiếng Anh.<br>
-                            Bạn có thể thử video khác hoặc dán Transcript thủ công (nếu có).
+                        <span class="text-muted" style="font-size:14px;">
+                            💡 Gợi ý: 
+                            <br>• Video này có thể không có phụ đề tiếng Anh.
+                            <br>• Hãy thử video khác có phụ đề (CC).
+                            <br>• Hoặc bạn có thể dùng Transcript thủ công từ YouTube.
                         </span>
                     </span>
                 `;
@@ -368,7 +374,7 @@
         function renderSubtitles() {
             const box = document.getElementById('subtitle-box');
             if (subtitles.length === 0) {
-                box.innerHTML = '<span style="color:#64748b;">Không có phụ đề nào.</span>';
+                box.innerHTML = '<span class="text-muted">Không có phụ đề nào.</span>';
                 return;
             }
             let html = '';
@@ -530,7 +536,8 @@
             }
         };
 
-        console.log('🎯 Ứng dụng đã sẵn sàng - Tự động lấy phụ đề thật!');
+        console.log('🎯 Ứng dụng đã sẵn sàng - Lấy phụ đề thật từ YouTube!');
+        console.log('📝 Hướng dẫn: Dán link video -> "Tải video" -> "Lấy phụ đề"');
     </script>
 </body>
 </html>
