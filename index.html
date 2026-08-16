@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎧 Luyện Nghe - Tự động lấy phụ đề từ YouTube</title>
+    <title>🎧 Luyện Nghe & Chép Chính Tả - Tự động với mọi video</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
     <style>
@@ -64,14 +64,16 @@
         <div class="card">
             <h2 style="display: flex; gap: 10px; align-items: center; margin-bottom: 20px;">
                 <i class="fab fa-youtube" style="color: #ff0000;"></i> 
-                YouTube Dictation Pro
-                <span style="font-size: 14px; background: #334155; padding: 2px 12px; border-radius: 40px;">Lấy phụ đề thật</span>
+                Dictation Pro
+                <span style="font-size: 14px; background: #334155; padding: 2px 12px; border-radius: 40px;">Tự động với mọi video</span>
             </h2>
             <div class="input-group">
-                <input type="text" id="youtubeUrl" placeholder="Dán link YouTube (VD: https://youtu.be/...)" value="https://www.youtube.com/watch?v=0LCgem1OAcE">
-                <button class="btn btn-primary" onclick="loadVideo()"><i class="fas fa-play"></i> Tải video</button>
-                <button class="btn btn-success" onclick="fetchRealSubtitles()"><i class="fas fa-captions"></i> Lấy phụ đề</button>
+                <input type="text" id="youtubeUrl" placeholder="Dán link YouTube bất kỳ (VD: https://youtu.be/...)" value="">
+                <button class="btn btn-primary" onclick="loadVideoAndSubtitles()"><i class="fas fa-play"></i> Tải video & Lấy phụ đề</button>
                 <button class="btn btn-danger" onclick="reloadPlayer()"><i class="fas fa-sync"></i> Tải lại</button>
+            </div>
+            <div style="margin-top: 8px; font-size:13px; color:#64748b;">
+                <i class="fas fa-info-circle"></i> Nhập link bất kỳ, hệ thống sẽ tự động lấy phụ đề tương ứng.
             </div>
         </div>
 
@@ -80,7 +82,7 @@
             <div class="video-wrapper" id="playerContainer">
                 <div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #64748b; flex-direction: column;">
                     <i class="fas fa-play-circle" style="font-size: 48px; margin-bottom: 12px;"></i>
-                    <span>Nhấn "Tải video" để bắt đầu</span>
+                    <span>Nhập link và bấm "Tải video & Lấy phụ đề"</span>
                 </div>
             </div>
             <div class="control-bar">
@@ -94,7 +96,7 @@
                     <option value="1" selected>1x</option>
                     <option value="1.5">1.5x</option>
                 </select>
-                <span class="status-badge" id="statusLabel">⚪ Chờ</span>
+                <span class="status-badge" id="statusLabel">⚪ Sẵn sàng</span>
             </div>
         </div>
 
@@ -108,11 +110,10 @@
                 </span>
             </div>
 
-            <!-- KHÔNG CÒN PHỤ ĐỀ GIẢ LẬP -->
             <div id="subtitle-box" class="mt-2">
                 <span class="text-muted">
                     <i class="fas fa-info-circle"></i> 
-                    👉 Bấm <strong>"Lấy phụ đề"</strong> để tải phụ đề thật từ video.
+                    👉 Nhập link YouTube và bấm <strong>"Tải video & Lấy phụ đề"</strong> để bắt đầu.
                 </span>
             </div>
 
@@ -136,15 +137,36 @@
         let activeIndex = -1;
         let isDictationMode = false;
         let retryCount = 0;
+        let currentVideoId = '';
 
-        function loadVideo() {
+        // Hàm chính: Tải video và tự động lấy phụ đề
+        function loadVideoAndSubtitles() {
             const url = document.getElementById('youtubeUrl').value;
             const videoId = extractVideoID(url);
             if (!videoId) {
-                alert('Link YouTube không hợp lệ!');
+                alert('Link YouTube không hợp lệ! Vui lòng kiểm tra lại.');
                 return;
             }
 
+            currentVideoId = videoId;
+            
+            // 1. Tải video
+            loadVideo(videoId);
+            
+            // 2. Tự động lấy phụ đề sau khi video đã tải
+            document.getElementById('statusLabel').innerHTML = '⏳ Đang tải video và phụ đề...';
+            document.getElementById('subtitle-box').innerHTML = '<span class="text-muted"><i class="fas fa-spinner loading"></i> Đang tải phụ đề cho video này...</span>';
+            
+            // Đợi player sẵn sàng rồi mới lấy phụ đề
+            const checkReady = setInterval(() => {
+                if (playerReady) {
+                    clearInterval(checkReady);
+                    fetchRealSubtitles(videoId);
+                }
+            }, 500);
+        }
+
+        function loadVideo(videoId) {
             const container = document.getElementById('playerContainer');
             container.innerHTML = '';
 
@@ -154,8 +176,6 @@
             iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
             iframe.allowFullscreen = true;
             container.appendChild(iframe);
-
-            document.getElementById('statusLabel').innerHTML = '⏳ Đang tải player...';
 
             setTimeout(() => {
                 try {
@@ -208,13 +228,17 @@
             document.getElementById('statusLabel').innerHTML = '❌ Lỗi phát video. Nhấn "Tải lại"';
             if (retryCount < 3) {
                 retryCount++;
-                setTimeout(() => { loadVideo(); }, 2000);
+                setTimeout(() => { loadVideo(currentVideoId); }, 2000);
             }
         }
 
         function reloadPlayer() {
             retryCount = 0;
-            loadVideo();
+            if (currentVideoId) {
+                loadVideo(currentVideoId);
+            } else {
+                loadVideoAndSubtitles();
+            }
         }
 
         function extractVideoID(url) {
@@ -278,20 +302,12 @@
         // ============================================================
         // 2. TỰ ĐỘNG LẤY PHỤ ĐỀ THẬT TỪ YOUTUBE
         // ============================================================
-        async function fetchRealSubtitles() {
-            const url = document.getElementById('youtubeUrl').value;
-            const videoId = extractVideoID(url);
-            if (!videoId) {
-                alert('Không tìm thấy ID video!');
-                return;
-            }
-
-            document.getElementById('statusLabel').innerHTML = '⏳ Đang tải phụ đề...';
+        async function fetchRealSubtitles(videoId) {
             const box = document.getElementById('subtitle-box');
-            box.innerHTML = '<span class="text-muted"><i class="fas fa-spinner loading"></i> Đang lấy phụ đề từ YouTube...</span>';
+            document.getElementById('statusLabel').innerHTML = '⏳ Đang tải phụ đề...';
 
             try {
-                // Dùng API công khai để lấy transcript
+                // Sử dụng API công khai để lấy transcript
                 const response = await fetch(`https://yt-api.com/api/transcript?videoId=${videoId}&lang=en`);
                 
                 if (!response.ok) {
@@ -319,11 +335,11 @@
                 subtitles = mergeToSentences(rawSubtitles);
                 
                 renderSubtitles();
-                document.getElementById('statusLabel').innerHTML = `✅ Đã lấy ${subtitles.length} câu phụ đề thật`;
+                document.getElementById('statusLabel').innerHTML = `✅ Đã lấy ${subtitles.length} câu phụ đề`;
 
             } catch (error) {
                 console.error('Lỗi lấy phụ đề:', error);
-                document.getElementById('statusLabel').innerHTML = '❌ Lỗi lấy phụ đề';
+                document.getElementById('statusLabel').innerHTML = '❌ Lỗi phụ đề';
                 box.innerHTML = `
                     <span class="text-danger">
                         <i class="fas fa-exclamation-triangle"></i> 
@@ -333,7 +349,7 @@
                             💡 Gợi ý: 
                             <br>• Video này có thể không có phụ đề tiếng Anh.
                             <br>• Hãy thử video khác có phụ đề (CC).
-                            <br>• Hoặc bạn có thể dùng Transcript thủ công từ YouTube.
+                            <br>• Bạn có thể dùng nút "Tải lại" để thử lại.
                         </span>
                     </span>
                 `;
@@ -525,19 +541,12 @@
             firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
         }
 
-        window.onload = function() {
-            setTimeout(loadVideo, 1000);
-        };
-
         window.onYouTubeIframeAPIReady = function() {
             console.log('YouTube API đã sẵn sàng');
-            if (!player) {
-                loadVideo();
-            }
         };
 
-        console.log('🎯 Ứng dụng đã sẵn sàng - Lấy phụ đề thật từ YouTube!');
-        console.log('📝 Hướng dẫn: Dán link video -> "Tải video" -> "Lấy phụ đề"');
+        console.log('🎯 Ứng dụng đã sẵn sàng - Tự động với mọi video!');
+        console.log('📝 Hướng dẫn: Dán bất kỳ link YouTube -> "Tải video & Lấy phụ đề"');
     </script>
 </body>
 </html>
