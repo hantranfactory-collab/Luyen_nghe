@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎧 Luyện Nghe & Chép Chính Tả - Bất kỳ Video nào</title>
+    <!-- Font Awesome & Google Fonts -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz@14..32&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; background: #0f172a; color: #e2e8f0; display: flex; justify-content: center; padding: 20px; }
+        .container { max-width: 1000px; width: 100%; }
+        .card { background: #1e293b; border-radius: 24px; padding: 24px; box-shadow: 0 20px 40px -12px rgba(0,0,0,0.8); margin-bottom: 20px; border: 1px solid #334155; }
+        .input-group { display: flex; gap: 12px; flex-wrap: wrap; }
+        .input-group input, .input-group textarea { flex: 1; padding: 14px 20px; border-radius: 40px; border: none; background: #0f172a; color: white; font-size: 16px; outline: 1px solid #334155; transition: 0.2s; min-width: 200px; font-family: 'Inter', sans-serif; }
+        .input-group input:focus, .input-group textarea:focus { outline: 2px solid #3b82f6; }
+        .input-group textarea { border-radius: 20px; min-height: 100px; resize: vertical; }
+        .btn { padding: 14px 28px; border: none; border-radius: 40px; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 15px; display: inline-flex; align-items: center; gap: 8px; }
+        .btn-primary { background: #3b82f6; color: white; }
+        .btn-primary:hover { background: #2563eb; transform: scale(1.02); }
+        .btn-success { background: #22c55e; color: #0f172a; }
+        .btn-success:hover { background: #16a34a; }
+        .btn-outline { background: transparent; border: 1px solid #475569; color: #cbd5e1; }
+        .btn-outline:hover { background: #334155; }
+        .btn-warning { background: #eab308; color: #0f172a; }
+        .btn-warning:hover { background: #ca8a04; }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+
+        .video-wrapper { position: relative; padding-bottom: 56.25%; height: 0; border-radius: 16px; overflow: hidden; background: #000; }
+        .video-wrapper iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+        .control-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 16px 0; }
+        .control-bar .btn { padding: 8px 16px; font-size: 14px; }
+
+        #subtitle-box {
+            background: #0f172a; border-radius: 16px; padding: 16px; max-height: 380px; overflow-y: auto;
+            font-size: 15px; line-height: 1.9; border: 1px solid #2d3a52;
+            white-space: pre-wrap; word-break: break-word;
+        }
+        #subtitle-box .sentence { display: block; padding: 4px 10px; border-radius: 8px; cursor: pointer; transition: 0.1s; }
+        #subtitle-box .sentence:hover { background: #2d3a52; }
+        #subtitle-box .active-sentence { background: #1e3a5f; border-left: 4px solid #3b82f6; }
+
+        .dictation-area { margin-top: 16px; }
+        .dictation-area textarea { width: 100%; min-height: 80px; background: #0f172a; border: 1px solid #334155; border-radius: 12px; color: white; padding: 14px; font-size: 16px; resize: vertical; }
+        .compare-result { display: flex; flex-wrap: wrap; gap: 4px; padding: 12px; background: #0f172a; border-radius: 12px; margin-top: 8px; min-height: 40px; border: 1px dashed #475569; }
+        .word-correct { color: #4ade80; }
+        .word-incorrect { color: #f87171; background: #7f1d1d; padding: 0 4px; border-radius: 4px; }
+        .word-missing { color: #fbbf24; background: #451a03; padding: 0 4px; border-radius: 4px; }
+
+        .tooltip-vocab { position: fixed; background: #1e293b; border: 1px solid #475569; padding: 12px 16px; border-radius: 12px; box-shadow: 0 10px 30px -10px black; max-width: 260px; z-index: 999; display: none; color: #e2e8f0; font-size: 14px; }
+        .tooltip-vocab b { color: #facc15; }
+
+        .status-badge { background: #334155; padding: 4px 12px; border-radius: 40px; font-size: 13px; display: inline-block; }
+        .help-text { color: #94a3b8; font-size: 13px; margin-top: 6px; }
+        .flex-between { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+        .mt-2 { margin-top: 12px; }
+        .mb-2 { margin-bottom: 12px; }
+        .text-center { text-align: center; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="card">
+            <h2 style="display: flex; gap: 10px; align-items: center; margin-bottom: 20px;">
+                <i class="fab fa-youtube" style="color: #ff0000;"></i> 
+                YouTube Dictation Pro
+                <span style="font-size: 14px; background: #334155; padding: 2px 12px; border-radius: 40px;">Hoạt động mọi video</span>
+            </h2>
+            <div class="input-group">
+                <input type="text" id="youtubeUrl" placeholder="Dán link YouTube (VD: https://youtu.be/...)" value="https://www.youtube.com/watch?v=0LCgem1OAcE">
+                <button class="btn btn-primary" onclick="loadVideo()"><i class="fas fa-play"></i> Tải video</button>
+                <button class="btn btn-danger" onclick="reloadPlayer()"><i class="fas fa-sync"></i> Tải lại</button>
+            </div>
+        </div>
+
+        <!-- Video Player -->
+        <div class="card">
+            <div class="video-wrapper" id="playerContainer">
+                <!-- YouTube Player sẽ được tạo ở đây -->
+                <div style="display: flex; justify-content: center; align-items: center; height: 100%; color: #64748b; flex-direction: column;">
+                    <i class="fas fa-play-circle" style="font-size: 48px; margin-bottom: 12px;"></i>
+                    <span>Nhấn "Tải video" để bắt đầu</span>
+                </div>
+            </div>
+            <div class="control-bar">
+                <button class="btn btn-outline" onclick="seek(-5)"><i class="fas fa-backward"></i> -5s</button>
+                <button class="btn btn-outline" onclick="togglePlay()"><i class="fas fa-play" id="playIcon"></i></button>
+                <button class="btn btn-outline" onclick="seek(5)"><i class="fas fa-forward"></i> +5s</button>
+                <button class="btn btn-outline" onclick="repeatSentence()"><i class="fas fa-redo-alt"></i> Lặp câu</button>
+                <select id="speedControl" class="btn btn-outline" style="padding: 6px 12px; background:#0f172a; color:white; border-radius:30px;" onchange="setSpeed()">
+                    <option value="0.5">0.5x</option>
+                    <option value="0.75">0.75x</option>
+                    <option value="1" selected>1x</option>
+                    <option value="1.5">1.5x</option>
+                </select>
+                <span class="status-badge" id="statusLabel">⚪ Chờ</span>
+            </div>
+        </div>
+
+        <!-- Transcript & Dictation -->
+        <div class="card">
+            <div class="flex-between">
+                <span><i class="fas fa-list-ul"></i> <strong>Phụ đề (bấm vào câu để phát)</strong></span>
+                <span>
+                    <button class="btn btn-outline" style="padding:4px 12px;" onclick="toggleDictation()"><i class="fas fa-pen"></i> Chép chính tả</button>
+                    <button class="btn btn-outline" style="padding:4px 12px;" onclick="checkDictation()"><i class="fas fa-check-double"></i> Soát lỗi</button>
+                </span>
+            </div>
+
+            <div class="input-group mt-2">
+                <textarea id="transcriptInput" placeholder="👉 CÁCH LẤY TRANSCRIPT:&#10;1. Mở video trên YouTube&#10;2. Bấm dấu ... (Khác) -> Mở bản ghi&#10;3. Copy toàn bộ nội dung có timestamp&#10;4. Dán vào đây và bấm 'Xử lý Transcript'">0:00 Introduction
+2:40 When do we start lying?
+4:50 From first lies to peak lying age around seven
+5:50 Teenagers are the most honest age group
+6:25 Different types of lie - white lies to red lies
+8:15 How many lies do we tell a day?
+10:00 The story of The Boy Who Cried Wolf
+12:45 Meet Ariana, the world's second best liar
+15:20 How can you get away with a lie?
+16:10 What goes on in our brain when we lie?
+18:30 Can we lie without realising it?
+22:15 Differences in lying around the world</textarea>
+                <button class="btn btn-warning" onclick="processTranscript()" style="align-self: flex-end;"><i class="fas fa-cogs"></i> Xử lý Transcript</button>
+            </div>
+            <div class="help-text">
+                <i class="fas fa-info-circle"></i> 
+                <strong>Hướng dẫn:</strong> Với video không có phụ đề sẵn, hãy copy Transcript từ YouTube (có kèm thời gian) và dán vào ô trên.
+            </div>
+
+            <div id="subtitle-box" class="mt-2">
+                <span style="color:#64748b;">👉 Dán Transcript và bấm "Xử lý Transcript" để bắt đầu.</span>
+            </div>
+
+            <div class="dictation-area" id="dictationArea" style="display: none;">
+                <textarea id="userInput" placeholder="Nghe và gõ lại câu bạn nghe được..."></textarea>
+                <div class="compare-result" id="compareResult"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tooltip từ vựng -->
+    <div class="tooltip-vocab" id="tooltipVocab"></div>
+
+    <script>
+        // ============================================================
+        // 1. KHỞI TẠO YOUTUBE PLAYER (ĐÃ SỬA LỖI)
+        // ============================================================
+        let player = null;
+        let playerReady = false;
+        let subtitles = [];
+        let activeIndex = -1;
+        let isDictationMode = false;
+        let retryCount = 0;
+
+        // Hàm tải video - CẢI TIẾN
+        function loadVideo() {
+            const url = document.getElementById('youtubeUrl').value;
+            const videoId = extractVideoID(url);
+            if (!videoId) {
+                alert('Link YouTube không hợp lệ!');
+                return;
+            }
+
+            // Xóa player cũ nếu có
+            const container = document.getElementById('playerContainer');
+            container.innerHTML = '';
+
+            // Tạo iframe mới
+            const iframe = document.createElement('iframe');
+            iframe.id = 'youtubePlayer';
+            iframe.src = `https://www.youtube.com/embed/${videoId}?enablejsapi=1&rel=0&autoplay=0`;
+            iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+            iframe.allowFullscreen = true;
+            container.appendChild(iframe);
+
+            document.getElementById('statusLabel').innerHTML = '⏳ Đang tải player...';
+
+            // Khởi tạo player sau khi iframe load
+            setTimeout(() => {
+                try {
+                    if (typeof YT !== 'undefined' && YT.Player) {
+                        createPlayer(videoId);
+                    } else {
+                        // Nếu API chưa load, chờ thêm
+                        window.onYouTubeIframeAPIReady = function() {
+                            createPlayer(videoId);
+                        };
+                        // Load API nếu chưa có
+                        if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+                            var tag = document.createElement('script');
+                            tag.src = "https://www.youtube.com/iframe_api";
+                            var firstScriptTag = document.getElementsByTagName('script')[0];
+                            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Lỗi tạo player:', e);
+                    document.getElementById('statusLabel').innerHTML = '❌ Lỗi tải video. Nhấn "Tải lại"';
+                }
+            }, 800);
+        }
+
+        function createPlayer(videoId) {
+            try {
+                if (player && typeof player.destroy === 'function') {
+                    player.destroy();
+                }
+                player = new YT.Player('youtubePlayer', {
+                    events: {
+                        'onReady': onPlayerReady,
+                        'onStateChange': onPlayerStateChange,
+                        'onError': onPlayerError
+                    }
+                });
+            } catch (e) {
+                console.error('Lỗi tạo YT.Player:', e);
+                document.getElementById('statusLabel').innerHTML = '❌ Lỗi. Nhấn "Tải lại"';
+            }
+        }
+
+        function onPlayerReady(event) {
+            playerReady = true;
+            document.getElementById('statusLabel').innerHTML = '✅ Video sẵn sàng';
+            console.log('Player đã sẵn sàng!');
+            // Tự động phát nhẹ để kiểm tra
+            // event.target.playVideo();
+        }
+
+        function onPlayerError(event) {
+            console.error('Lỗi YouTube:', event.data);
+            document.getElementById('statusLabel').innerHTML = '❌ Lỗi phát video. Nhấn "Tải lại"';
+            // Thử tải lại nếu lỗi
+            if (retryCount < 3) {
+                retryCount++;
+                setTimeout(() => {
+                    loadVideo();
+                }, 2000);
+            }
+        }
+
+        // Hàm tải lại player
+        function reloadPlayer() {
+            retryCount = 0;
+            loadVideo();
+        }
+
+        function extractVideoID(url) {
+            const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
+            const match = url.match(regex);
+            return match ? match[1] : null;
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.PLAYING) {
+                document.getElementById('playIcon').className = 'fas fa-pause';
+                document.getElementById('statusLabel').innerHTML = '▶️ Đang phát';
+                if (!window._syncInterval) {
+                    window._syncInterval = setInterval(updateActiveSentence, 200);
+                }
+            } else if (event.data === YT.PlayerState.PAUSED) {
+                document.getElementById('playIcon').className = 'fas fa-play';
+                document.getElementById('statusLabel').innerHTML = '⏸️ Tạm dừng';
+            } else if (event.data === YT.PlayerState.ENDED) {
+                document.getElementById('playIcon').className = 'fas fa-play';
+                document.getElementById('statusLabel').innerHTML = '⏹️ Kết thúc';
+                clearInterval(window._syncInterval);
+                window._syncInterval = null;
+            } else if (event.data === YT.PlayerState.UNSTARTED) {
+                document.getElementById('statusLabel').innerHTML = '⏸️ Sẵn sàng - Nhấn Play';
+            }
+        }
+
+        function togglePlay() {
+            if (!player) {
+                alert('Vui lòng tải video trước!');
+                return;
+            }
+            if (player.getPlayerState() === YT.PlayerState.PLAYING) {
+                player.pauseVideo();
+            } else {
+                player.playVideo();
+            }
+        }
+
+        function seek(seconds) {
+            if (!player) return;
+            try {
+                const current = player.getCurrentTime();
+                player.seekTo(Math.max(0, current + seconds), true);
+            } catch (e) {
+                console.warn('Lỗi tua:', e);
+            }
+        }
+
+        function setSpeed() {
+            if (!player) return;
+            try {
+                const speed = parseFloat(document.getElementById('speedControl').value);
+                player.setPlaybackRate(speed);
+            } catch (e) {
+                console.warn('Lỗi đổi tốc độ:', e);
+            }
+        }
+
+        // ============================================================
+        // 2. XỬ LÝ TRANSCRIPT THỦ CÔNG
+        // ============================================================
+        function processTranscript() {
+            const raw = document.getElementById('transcriptInput').value;
+            if (!raw.trim()) return alert('Bạn chưa dán Transcript!');
+
+            const lines = raw.split('\n').filter(line => line.trim() !== '');
+            const newSubtitles = [];
+
+            for (let line of lines) {
+                const match = line.match(/^(\d{1,2}:\d{2})\s+(.*)/);
+                if (match) {
+                    const timeStr = match[1];
+                    const text = match[2].trim();
+                    const seconds = timeToSecondsManual(timeStr);
+                    newSubtitles.push({ start: seconds, end: seconds + 3, text: text });
+                } else {
+                    if (newSubtitles.length > 0) {
+                        newSubtitles[newSubtitles.length - 1].text += ' ' + line.trim();
+                    }
+                }
+            }
+
+            if (newSubtitles.length === 0) {
+                return alert('Không tìm thấy timestamp. Đảm bảo transcript có dạng "0:00 Nội dung"');
+            }
+
+            for (let i = 0; i < newSubtitles.length - 1; i++) {
+                newSubtitles[i].end = Math.min(newSubtitles[i+1].start - 0.1, newSubtitles[i].start + 10);
+            }
+            if (newSubtitles.length > 0) {
+                const last = newSubtitles[newSubtitles.length - 1];
+                last.end = last.start + 5;
+            }
+
+            subtitles = newSubtitles;
+            renderSubtitles();
+            document.getElementById('statusLabel').innerHTML = `✅ Đã xử lý ${subtitles.length} câu từ Transcript`;
+        }
+
+        function timeToSecondsManual(timeStr) {
+            const parts = timeStr.split(':');
+            if (parts.length === 2) {
+                return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+            }
+            return 0;
+        }
+
+        // ============================================================
+        // 3. HIỂN THỊ & TÔ SÁNG
+        // ============================================================
+        function renderSubtitles() {
+            const box = document.getElementById('subtitle-box');
+            if (subtitles.length === 0) {
+                box.innerHTML = '<span style="color:#64748b;">Không có câu nào.</span>';
+                return;
+            }
+            let html = '';
+            subtitles.forEach((s, idx) => {
+                html += `<span class="sentence" data-index="${idx}" onclick="playSentence(${idx})">${idx+1}. ${s.text}</span>\n`;
+            });
+            box.innerHTML = html;
+        }
+
+        function updateActiveSentence() {
+            if (!player || !playerReady || subtitles.length === 0) return;
+            try {
+                const current = player.getCurrentTime();
+                let found = -1;
+                for (let i = 0; i < subtitles.length; i++) {
+                    if (current >= subtitles[i].start && current <= subtitles[i].end) {
+                        found = i;
+                        break;
+                    }
+                }
+                if (found !== -1 && found !== activeIndex) {
+                    activeIndex = found;
+                    const box = document.getElementById('subtitle-box');
+                    const all = box.querySelectorAll('.sentence');
+                    all.forEach((el, idx) => {
+                        el.classList.toggle('active-sentence', idx === activeIndex);
+                    });
+                    if (all[activeIndex]) all[activeIndex].scrollIntoView({ block: 'center', behavior: 'smooth' });
+                    if (isDictationMode) {
+                        document.getElementById('userInput').value = subtitles[activeIndex]?.text || '';
+                    }
+                }
+            } catch (e) {
+                // Bỏ qua lỗi khi player chưa sẵn sàng
+            }
+        }
+
+        function playSentence(index) {
+            if (!player || !playerReady) {
+                alert('Vui lòng đợi video tải xong!');
+                return;
+            }
+            if (index < 0 || index >= subtitles.length) return;
+            const s = subtitles[index];
+            try {
+                player.seekTo(s.start, true);
+                player.playVideo();
+            } catch (e) {
+                console.warn('Lỗi phát câu:', e);
+            }
+        }
+
+        function repeatSentence() {
+            if (activeIndex === -1 || !player || !playerReady) return;
+            const s = subtitles[activeIndex];
+            try {
+                player.seekTo(s.start, true);
+                player.playVideo();
+                setTimeout(() => { if (player) { player.seekTo(s.start, true); player.playVideo(); }}, (s.end - s.start + 0.5)*1000);
+                setTimeout(() => { if (player) { player.seekTo(s.start, true); player.playVideo(); }}, (s.end - s.start + 0.5)*2000);
+            } catch (e) {
+                console.warn('Lỗi lặp câu:', e);
+            }
+        }
+
+        // ============================================================
+        // 4. LUYỆN CHÉP CHÍNH TẢ
+        // ============================================================
+        function toggleDictation() {
+            isDictationMode = !isDictationMode;
+            const area = document.getElementById('dictationArea');
+            area.style.display = isDictationMode ? 'block' : 'none';
+            if (isDictationMode && activeIndex !== -1) {
+                document.getElementById('userInput').value = '';
+                document.getElementById('compareResult').innerHTML = '';
+            }
+        }
+
+        function checkDictation() {
+            if (activeIndex === -1) return alert('Hãy chọn một câu (bấm vào câu trong danh sách)');
+            const original = subtitles[activeIndex].text;
+            const user = document.getElementById('userInput').value.trim();
+            if (!user) return alert('Bạn chưa nhập gì!');
+
+            const wordsOrg = original.split(/\s+/);
+            const wordsUser = user.split(/\s+/);
+            const resultDiv = document.getElementById('compareResult');
+            let html = '';
+
+            for (let i = 0; i < Math.max(wordsOrg.length, wordsUser.length); i++) {
+                const wOrg = wordsOrg[i] || '';
+                const wUser = wordsUser[i] || '';
+                if (i >= wordsOrg.length) {
+                    html += `<span class="word-incorrect">[${wUser}]</span> `;
+                } else if (i >= wordsUser.length) {
+                    html += `<span class="word-missing">[${wOrg}]</span> `;
+                } else if (wOrg.toLowerCase() === wUser.toLowerCase()) {
+                    html += `<span class="word-correct">${wUser}</span> `;
+                } else {
+                    html += `<span class="word-incorrect">${wUser}</span> `;
+                }
+            }
+            resultDiv.innerHTML = html;
+        }
+
+        // ============================================================
+        // 5. TRA TỪ VỰNG
+        // ============================================================
+        document.getElementById('subtitle-box').addEventListener('click', function(e) {
+            if (e.target.tagName === 'SPAN' && e.target.classList.contains('sentence')) return;
+            const selection = window.getSelection();
+            const word = selection.toString().trim();
+            if (word && word.length > 1) {
+                showTooltip(e.clientX, e.clientY, word);
+            }
+        });
+
+        async function showTooltip(x, y, word) {
+            const tooltip = document.getElementById('tooltipVocab');
+            try {
+                const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+                if (!res.ok) throw new Error('Không tìm thấy');
+                const data = await res.json();
+                const meaning = data[0]?.meanings[0]?.definitions[0]?.definition || 'Không có định nghĩa';
+                tooltip.innerHTML = `<b>${word}</b><br>${meaning}`;
+            } catch {
+                tooltip.innerHTML = `<b>${word}</b><br>⚠️ Không tra được từ này.`;
+            }
+            tooltip.style.left = (x + 10) + 'px';
+            tooltip.style.top = (y - 20) + 'px';
+            tooltip.style.display = 'block';
+            setTimeout(() => { tooltip.style.display = 'none'; }, 4000);
+        }
+
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#subtitle-box')) {
+                document.getElementById('tooltipVocab').style.display = 'none';
+            }
+        });
+
+        // ============================================================
+        // 6. TẢI YOUTUBE IFrame API
+        // ============================================================
+        // Tải API nếu chưa có
+        if (typeof YT === 'undefined') {
+            var tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            var firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        }
+
+        // Tự động tải video mặc định khi trang load
+        window.onload = function() {
+            setTimeout(loadVideo, 1000);
+        };
+
+        // Khi API ready
+        window.onYouTubeIframeAPIReady = function() {
+            console.log('YouTube API đã sẵn sàng');
+            // Nếu chưa có player, tạo mới
+            if (!player) {
+                loadVideo();
+            }
+        };
+
+        console.log('🎯 Ứng dụng đã sẵn sàng!');
+    </script>
+</body>
+</html>
